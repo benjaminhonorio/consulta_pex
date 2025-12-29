@@ -1,23 +1,37 @@
 defmodule ConsultaPex.Router do
   use Plug.Router
-  alias ConsultaPex.RedisStore
-  alias ConsultaPex.SunatApi
+  alias ConsultaPex.{RedisStore, SessionPool, SunatApi}
 
   plug(:match)
   plug(:dispatch)
 
   get "/health" do
-    case RedisStore.get_cookies() do
-      {:ok, nil} ->
-        send_json(conn, 503, %{status: "error", message: "no cookies"})
+    pool_status = SessionPool.pool_status()
+    sessions_info = get_sessions_info(pool_status.pool_size)
 
-      {:ok, _} ->
-        {:ok, updated_at} = RedisStore.get_updated_at()
-        send_json(conn, 200, %{status: "ok", cookies_updated_at: updated_at})
-
-      {:error, reason} ->
-        send_json(conn, 503, %{status: "error", message: inspect(reason)})
+    if sessions_info.ready > 0 do
+      send_json(conn, 200, %{status: "ok"})
+    else
+      send_json(conn, 503, %{status: "degraded", message: "no sessions ready"})
     end
+  end
+
+  get "/pool/status" do
+    pool_status = SessionPool.pool_status()
+    sessions_info = get_sessions_info(pool_status.pool_size)
+
+    send_json(conn, 200, %{
+      pool: %{
+        size: pool_status.pool_size,
+        available: pool_status.available,
+        in_use: pool_status.in_use,
+        waiting: pool_status.waiting
+      },
+      sessions: %{
+        ready: sessions_info.ready,
+        oldest_update: sessions_info.oldest_update
+      }
+    })
   end
 
   get "/dni/:numero" do
@@ -59,4 +73,20 @@ defmodule ConsultaPex.Router do
   defp format_error(reason) when is_atom(reason), do: Atom.to_string(reason)
   defp format_error(reason) when is_binary(reason), do: reason
   defp format_error(reason), do: inspect(reason)
+
+  defp get_sessions_info(pool_size) do
+    sessions =
+      Enum.map(1..pool_size, fn session_id ->
+        case RedisStore.get_session_updated_at(session_id) do
+          {:ok, nil} -> nil
+          {:ok, timestamp} -> timestamp
+          _ -> nil
+        end
+      end)
+
+    ready = Enum.count(sessions, &(&1 != nil))
+    oldest = sessions |> Enum.reject(&is_nil/1) |> Enum.min(fn -> nil end)
+
+    %{ready: ready, oldest_update: oldest}
+  end
 end

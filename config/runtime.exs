@@ -6,5 +6,6 @@ config :consulta_pex,
   clave_sol: System.get_env("CLAVE_SOL") || raise("Falta CLAVE_SOL"),
   redis_url: System.get_env("REDIS_URL", "redis://localhost:6379"),
   http_port: String.to_integer(System.get_env("PORT", "4000")),
+  pool_size: String.to_integer(System.get_env("POOL_SIZE", "3")),
   refresh_interval: String.to_integer(System.get_env("REFRESH_INTERVAL", "3600000")),
   retry_interval: String.to_integer(System.get_env("RETRY_INTERVAL", "300000"))

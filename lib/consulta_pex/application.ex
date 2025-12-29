@@ -9,13 +9,16 @@ defmodule ConsultaPex.Application do
   @impl true
   def start(_type, _args) do
     port = Application.get_env(:consulta_pex, :http_port, 4000)
+    pool_size = Application.get_env(:consulta_pex, :pool_size, 2)
     ruc = Application.get_env(:consulta_pex, :ruc)
     usuario_sol = Application.get_env(:consulta_pex, :usuario_sol)
     clave_sol = Application.get_env(:consulta_pex, :clave_sol)
 
     children = [
-      {Redix, {Application.get_env(:consulta_pex, :redis_url, "redis://localhost:6379"), [name: :redix]}},
+      {Redix,
+       {Application.get_env(:consulta_pex, :redis_url, "redis://localhost:6379"), [name: :redix]}},
       ConsultaPex.PlaywrightPort,
+      {ConsultaPex.SessionPool, pool_size: pool_size},
       {ConsultaPex.CookieRefresher, ruc: ruc, usuario_sol: usuario_sol, clave_sol: clave_sol},
       {Bandit, plug: ConsultaPex.Router, port: port}
     ]

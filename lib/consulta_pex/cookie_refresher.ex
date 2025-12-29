@@ -15,6 +15,7 @@ defmodule ConsultaPex.CookieRefresher do
         usuario_sol: opts[:usuario_sol],
         clave_sol: opts[:clave_sol]
       },
+      pool_size: Application.get_env(:consulta_pex, :pool_size, 3),
       refresh_interval: Application.get_env(:consulta_pex, :refresh_interval, :timer.minutes(60)),
       retry_interval: Application.get_env(:consulta_pex, :retry_interval, :timer.minutes(5))
     }
@@ -25,25 +26,46 @@ defmodule ConsultaPex.CookieRefresher do
 
   @impl true
   def handle_info(:check_and_refresh, state) do
-    case should_refresh?(state.refresh_interval) do
-      true ->
-        Logger.info("Cookies vencidas o no existen, haciendo login...")
-        do_refresh(state)
-
-      false ->
-        Logger.info("Cookies válidas, esperando próximo refresh")
-        schedule_refresh(state.refresh_interval)
-        {:noreply, state}
-    end
+    refresh_all_sessions(state)
+    schedule_refresh(state.refresh_interval)
+    {:noreply, state}
   end
 
   @impl true
   def handle_info(:refresh, state) do
-    do_refresh(state)
+    refresh_all_sessions(state)
+    schedule_refresh(state.refresh_interval)
+    {:noreply, state}
   end
 
-  defp should_refresh?(refresh_interval) do
-    case RedisStore.get_updated_at() do
+  defp refresh_all_sessions(state) do
+    Logger.info("Iniciando refresh de #{state.pool_size} sesiones...")
+
+    results =
+      Enum.map(1..state.pool_size, fn session_id ->
+        refresh_session(session_id, state)
+      end)
+
+    success_count = Enum.count(results, &match?(:ok, &1))
+    error_count = Enum.count(results, &match?({:error, _}, &1))
+
+    Logger.info("Refresh completado: #{success_count} exitosas, #{error_count} fallidas")
+  end
+
+  defp refresh_session(session_id, state) do
+    case should_refresh_session?(session_id, state.refresh_interval) do
+      true ->
+        Logger.info("Sesión #{session_id}: refrescando...")
+        do_refresh_session(session_id, state)
+
+      false ->
+        Logger.debug("Sesión #{session_id}: cookies válidas")
+        :ok
+    end
+  end
+
+  defp should_refresh_session?(session_id, refresh_interval) do
+    case RedisStore.get_session_updated_at(session_id) do
       {:ok, nil} ->
         true
 
@@ -54,7 +76,6 @@ defmodule ConsultaPex.CookieRefresher do
             age > refresh_interval * 0.9
 
           {:error, _} ->
-            # Timestamp inválido = mejor refrescar
             true
         end
 
@@ -63,18 +84,16 @@ defmodule ConsultaPex.CookieRefresher do
     end
   end
 
-  defp do_refresh(state) do
+  defp do_refresh_session(session_id, state) do
     case PlaywrightPort.login(state.credentials) do
       {:ok, cookies} ->
-        RedisStore.set_cookies(cookies)
-        Logger.info("Cookies actualizadas")
-        schedule_refresh(state.refresh_interval)
-        {:noreply, state}
+        RedisStore.set_session_cookies(session_id, cookies)
+        Logger.info("Sesión #{session_id}: cookies actualizadas")
+        :ok
 
       {:error, reason} ->
-        Logger.error("Error en login: #{inspect(reason)}")
-        schedule_refresh(state.retry_interval)
-        {:noreply, state}
+        Logger.error("Sesión #{session_id}: error en login: #{inspect(reason)}")
+        {:error, reason}
     end
   end
 

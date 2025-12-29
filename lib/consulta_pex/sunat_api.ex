@@ -2,9 +2,9 @@ defmodule ConsultaPex.SunatApi do
   @base_url "https://ww1.sunat.gob.pe/ol-ti-itemisionboleta/emitir.do"
 
   require Logger
-  alias ConsultaPex.RedisStore
+  alias ConsultaPex.{RedisStore, SessionPool}
 
-  # DNI → retorna nombre
+  # DNI → retorna nombre (no usa pool, no mantiene estado)
   def consultar_dni(dni) do
     with {:ok, cookies} <- get_cookies(),
          {:ok, nombre} <- validar_adquiriente(dni, 1, cookies) do
@@ -12,17 +12,27 @@ defmodule ConsultaPex.SunatApi do
     end
   end
 
-  # RUC → retorna razón social + domicilios
+  # RUC → retorna razón social + domicilios (usa pool para evitar race conditions)
   def consultar_ruc(ruc) do
-    with {:ok, cookies} <- get_cookies(),
-         {:ok, razon_social} <- validar_adquiriente(ruc, 6, cookies),
-         {:ok, domicilios} <- get_domicilios(cookies) do
-      {:ok, %{razon_social: razon_social, domicilios: domicilios}}
-    end
+    SessionPool.with_session(fn session_id ->
+      with {:ok, cookies} <- get_session_cookies(session_id),
+           {:ok, razon_social} <- validar_adquiriente(ruc, 6, cookies),
+           {:ok, domicilios} <- get_domicilios(cookies) do
+        {:ok, %{razon_social: razon_social, domicilios: domicilios}}
+      end
+    end)
   end
 
   defp get_cookies do
     case RedisStore.get_cookies() do
+      {:ok, nil} -> {:error, :no_cookies}
+      {:ok, cookies} -> {:ok, cookies}
+      error -> error
+    end
+  end
+
+  defp get_session_cookies(session_id) do
+    case RedisStore.get_session_cookies(session_id) do
       {:ok, nil} -> {:error, :no_cookies}
       {:ok, cookies} -> {:ok, cookies}
       error -> error
