@@ -1,11 +1,28 @@
 import Config
 
+get_env_required = fn name ->
+  System.get_env(name) || raise "Missing required env var: #{name}"
+end
+
+get_env_integer = fn name, default ->
+  case System.get_env(name) do
+    nil ->
+      default
+
+    val ->
+      case Integer.parse(val) do
+        {int, ""} -> int
+        _ -> raise "Invalid integer for #{name}: #{val}"
+      end
+  end
+end
+
 config :consulta_pex,
-  ruc: System.get_env("RUC") || raise("Falta RUC"),
-  usuario_sol: System.get_env("USUARIO_SOL") || raise("Falta USUARIO_SOL"),
-  clave_sol: System.get_env("CLAVE_SOL") || raise("Falta CLAVE_SOL"),
+  ruc: get_env_required.("RUC"),
+  usuario_sol: get_env_required.("USUARIO_SOL"),
+  clave_sol: get_env_required.("CLAVE_SOL"),
   redis_url: System.get_env("REDIS_URL", "redis://localhost:6379"),
-  http_port: String.to_integer(System.get_env("PORT", "4000")),
-  pool_size: String.to_integer(System.get_env("POOL_SIZE", "3")),
-  refresh_interval: String.to_integer(System.get_env("REFRESH_INTERVAL", "3600000")),
-  retry_interval: String.to_integer(System.get_env("RETRY_INTERVAL", "300000"))
+  http_port: get_env_integer.("PORT", 4000),
+  pool_size: get_env_integer.("POOL_SIZE", 2),
+  refresh_interval: get_env_integer.("REFRESH_INTERVAL", 3_600_000),
+  retry_interval: get_env_integer.("RETRY_INTERVAL", 300_000)

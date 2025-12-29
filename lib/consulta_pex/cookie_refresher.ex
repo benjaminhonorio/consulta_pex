@@ -15,9 +15,9 @@ defmodule ConsultaPex.CookieRefresher do
         usuario_sol: opts[:usuario_sol],
         clave_sol: opts[:clave_sol]
       },
-      pool_size: Application.get_env(:consulta_pex, :pool_size, 3),
-      refresh_interval: Application.get_env(:consulta_pex, :refresh_interval, :timer.minutes(60)),
-      retry_interval: Application.get_env(:consulta_pex, :retry_interval, :timer.minutes(5))
+      pool_size: Application.fetch_env!(:consulta_pex, :pool_size),
+      refresh_interval: Application.fetch_env!(:consulta_pex, :refresh_interval),
+      retry_interval: Application.fetch_env!(:consulta_pex, :retry_interval)
     }
 
     send(self(), :check_and_refresh)
