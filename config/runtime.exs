@@ -25,4 +25,5 @@ config :consulta_pex,
   http_port: get_env_integer.("PORT", 4000),
   pool_size: get_env_integer.("POOL_SIZE", 2),
   refresh_interval: get_env_integer.("REFRESH_INTERVAL", 3_600_000),
-  retry_interval: get_env_integer.("RETRY_INTERVAL", 300_000)
+  retry_interval: get_env_integer.("RETRY_INTERVAL", 300_000),
+  api_key: get_env_required.("API_KEY")

@@ -5,6 +5,7 @@ defmodule ConsultaPex.Router do
 
   plug(Plug.Logger)
   plug(:match)
+  plug(:maybe_authenticate)
   plug(:dispatch)
 
   get "/health" do
@@ -64,6 +65,16 @@ defmodule ConsultaPex.Router do
 
   match _ do
     send_json(conn, 404, %{error: "not found"})
+  end
+
+  @public_paths ["/health"]
+
+  defp maybe_authenticate(%{request_path: path} = conn, _opts) when path in @public_paths do
+    conn
+  end
+
+  defp maybe_authenticate(conn, _opts) do
+    ConsultaPex.Plugs.ApiKeyAuth.call(conn, [])
   end
 
   # Helpers
