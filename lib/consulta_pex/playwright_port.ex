@@ -2,6 +2,8 @@ defmodule ConsultaPex.PlaywrightPort do
   use GenServer
   require Logger
 
+  alias ConsultaPex.SunatEndpoints
+
   @script_path "priv/playwright/dist/login.js"
 
   def start_link(_opts) do
@@ -27,7 +29,9 @@ defmodule ConsultaPex.PlaywrightPort do
     command =
       Jason.encode!(%{
         action: "login",
-        credentials: credentials
+        credentials: credentials,
+        login_url: SunatEndpoints.login_url(),
+        cookie_domain: SunatEndpoints.cookie_domain()
       })
 
     Port.command(state.port, command <> "\n")

@@ -1,9 +1,6 @@
 import * as readline from "node:readline";
 import { firefox } from "playwright";
 
-const LOGIN_URL =
-  "https://api-seguridad.sunat.gob.pe/v1/clientessol/085b176d-2437-44cd-8c3e-e9a83b705921/oauth2/loginMenuSol?lang=es-PE&showDni=true&showLanguages=false&originalUrl=https://e-menu.sunat.gob.pe/cl-ti-itmenucabina/AutenticaMenuInternet.htm&state=rO0ABXNyABFqYXZhLnV0aWwuSGFzaE1hcAUH2sHDFmDRAwACRgAKbG9hZEZhY3RvckkACXRocmVzaG9sZHhwP0AAAAAAAAx3CAAAABAAAAADdAAEZXhlY3B0AAZwYXJhbXN0AFEqJiomL2NsLXRpLWl0bWVudWNhYmluYS9NZW51SW50ZXJuZXQuaHRtJjBlMWY4NDg5ZmVlYWJmOTMxNmI5ODUwNTYyMjA5MTE4ZjkxZTJjMmN0AANleGVweA==";
-
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
@@ -12,10 +9,10 @@ const rl = readline.createInterface({
 
 rl.on("line", async (line) => {
   try {
-    const { action, credentials } = JSON.parse(line);
+    const { action, credentials, login_url, cookie_domain } = JSON.parse(line);
 
     if (action === "login") {
-      const cookies = await doLogin(credentials);
+      const cookies = await doLogin(credentials, login_url, cookie_domain);
       console.log(JSON.stringify({ ok: true, cookies }));
     }
   } catch (error) {
@@ -24,22 +21,26 @@ rl.on("line", async (line) => {
   }
 });
 
-async function doLogin({
-  ruc,
-  usuario_sol,
-  clave_sol,
-}: {
-  ruc: string;
-  usuario_sol: string;
-  clave_sol: string;
-}) {
+async function doLogin(
+  {
+    ruc,
+    usuario_sol,
+    clave_sol,
+  }: {
+    ruc: string;
+    usuario_sol: string;
+    clave_sol: string;
+  },
+  loginUrl: string,
+  cookieDomain: string
+) {
   const browser = await firefox.launch({ headless: true });
 
   try {
     const context = await browser.newContext();
     const page = await context.newPage();
 
-    await page.goto(LOGIN_URL);
+    await page.goto(loginUrl);
     await page.waitForTimeout(2000);
     // Ingresar credenciales
     await page.getByRole("textbox", { name: "RUC" }).fill(ruc);
@@ -71,7 +72,7 @@ async function doLogin({
     });
 
     // Extraer cookies
-    const cookies = await context.cookies(["https://ww1.sunat.gob.pe"]);
+    const cookies = await context.cookies([cookieDomain]);
     return cookies.map((c) => `${c.name}=${c.value}`).join("; ");
   } finally {
     await browser.close();

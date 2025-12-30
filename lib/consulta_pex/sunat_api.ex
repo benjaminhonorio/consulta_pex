@@ -1,8 +1,6 @@
 defmodule ConsultaPex.SunatApi do
-  @base_url "https://ww1.sunat.gob.pe/ol-ti-itemisionboleta/emitir.do"
-
   require Logger
-  alias ConsultaPex.{RedisStore, SessionPool}
+  alias ConsultaPex.{RedisStore, SessionPool, SunatEndpoints}
 
   # Para DNI → solo retorna nombre, desde sunat no hay de donde sacar los domicilios y para las boletas no es necesario
   def consultar_dni(dni) do
@@ -54,7 +52,7 @@ defmodule ConsultaPex.SunatApi do
   end
 
   defp validar_adquiriente(numero, tipo, cookies) do
-    url = "#{@base_url}?action=validarAdquiriente&tipoDocumento=#{tipo}&numeroDocumento=#{numero}"
+    url = "#{SunatEndpoints.api_base_url()}?action=validarAdquiriente&tipoDocumento=#{tipo}&numeroDocumento=#{numero}"
     Logger.debug("SUNAT request: validarAdquiriente tipo=#{tipo} numero=#{numero}")
 
     case Req.get(url, headers: headers(cookies), decode_body: false) do
@@ -73,7 +71,7 @@ defmodule ConsultaPex.SunatApi do
   end
 
   defp get_domicilios(cookies) do
-    url = "#{@base_url}?action=getDomiciliosCliente"
+    url = "#{SunatEndpoints.api_base_url()}?action=getDomiciliosCliente"
     Logger.debug("SUNAT request: getDomiciliosCliente")
 
     case Req.get(url, headers: headers(cookies), decode_body: false) do
