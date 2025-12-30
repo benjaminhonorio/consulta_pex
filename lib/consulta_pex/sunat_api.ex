@@ -52,7 +52,9 @@ defmodule ConsultaPex.SunatApi do
   end
 
   defp validar_adquiriente(numero, tipo, cookies) do
-    url = "#{SunatEndpoints.api_base_url()}?action=validarAdquiriente&tipoDocumento=#{tipo}&numeroDocumento=#{numero}"
+    url =
+      "#{SunatEndpoints.api_base_url()}?action=validarAdquiriente&tipoDocumento=#{tipo}&numeroDocumento=#{numero}"
+
     Logger.debug("SUNAT request: validarAdquiriente tipo=#{tipo} numero=#{numero}")
 
     case Req.get(url, headers: headers(cookies), decode_body: false) do

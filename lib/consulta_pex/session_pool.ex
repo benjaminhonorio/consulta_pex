@@ -61,13 +61,20 @@ defmodule ConsultaPex.SessionPool do
             in_use: Map.put(state.in_use, session_id, {pid, ref, System.monotonic_time()})
         }
 
-        Logger.debug("Checkout session #{session_id} to #{inspect(pid)}, available: #{MapSet.size(new_state.available)}")
+        Logger.debug(
+          "Checkout session #{session_id} to #{inspect(pid)}, available: #{MapSet.size(new_state.available)}"
+        )
+
         {:reply, {:ok, session_id}, new_state}
 
       [] ->
         # No hay sesiones disponibles, encolar
         new_waiting = :queue.in(from, state.waiting)
-        Logger.debug("No sessions available, queued #{inspect(pid)}, waiting: #{:queue.len(new_waiting)}")
+
+        Logger.debug(
+          "No sessions available, queued #{inspect(pid)}, waiting: #{:queue.len(new_waiting)}"
+        )
+
         {:noreply, %{state | waiting: new_waiting}}
     end
   end
@@ -90,7 +97,11 @@ defmodule ConsultaPex.SessionPool do
       {pid, ref, _time} ->
         Process.demonitor(ref, [:flush])
         new_state = do_checkin(session_id, state)
-        Logger.debug("Checkin session #{session_id} from #{inspect(pid)}, available: #{MapSet.size(new_state.available)}")
+
+        Logger.debug(
+          "Checkin session #{session_id} from #{inspect(pid)}, available: #{MapSet.size(new_state.available)}"
+        )
+
         {:noreply, new_state}
 
       nil ->
@@ -127,7 +138,10 @@ defmodule ConsultaPex.SessionPool do
             waiting: new_waiting
         }
 
-        Logger.debug("Dequeued #{inspect(pid)}, assigned session #{session_id}, waiting: #{:queue.len(new_waiting)}")
+        Logger.debug(
+          "Dequeued #{inspect(pid)}, assigned session #{session_id}, waiting: #{:queue.len(new_waiting)}"
+        )
+
         GenServer.reply(from, {:ok, session_id})
         new_state
 
