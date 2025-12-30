@@ -87,9 +87,15 @@ defmodule ConsultaPex.CookieRefresher do
   defp do_refresh_session(session_id, state) do
     case PlaywrightPort.login(state.credentials) do
       {:ok, cookies} ->
-        RedisStore.set_session_cookies(session_id, cookies)
-        Logger.info("Sesión #{session_id}: cookies actualizadas")
-        :ok
+        case RedisStore.set_session_cookies(session_id, cookies) do
+          {:ok, _} ->
+            Logger.info("Sesión #{session_id}: cookies actualizadas")
+            :ok
+
+          {:error, reason} ->
+            Logger.error("Sesión #{session_id}: error guardando en Redis: #{inspect(reason)}")
+            {:error, reason}
+        end
 
       {:error, reason} ->
         Logger.error("Sesión #{session_id}: error en login: #{inspect(reason)}")
