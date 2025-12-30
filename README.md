@@ -6,9 +6,21 @@ API REST para consultar información de contribuyentes en SUNAT (DNI y RUC).
 
 Para mi sistema de facturación electrónica necesitaba obtener nombres de personas y empresas, además de sus domicilios fiscales, a partir de su número de documento (DNI o RUC).
 
-Las APIs de terceros ofrecían más información de la que necesitaba y requerían pago o tenían límites. La alternativa open source [peru-consult-api](https://github.com/giansalex/peru-consult-api) funcionaba parcialmente, pero la consulta de DNI dejó de funcionar.
+Las APIs de terceros ofrecían más información de la que necesitaba y requerían pago o tenían límites. La alternativa open source [peru-consult-api](https://github.com/giansalex/peru-consult-api) funcionaba parcialmente, pero la consulta de DNI dejó de funcionar hace un tiempo.
 
 Como mi sistema ya usa credenciales SOL para facturar, decidí aprovecharlas para consultar directamente la web de SUNAT, manteniendo sesiones autenticadas para respuestas rápidas. El resultado es una API simple que devuelve exactamente lo necesario para facturar, sin dependencias externas de pago.
+
+Este proyecto nació con la intención de aprovechar lo que encontré disponible y de paso aprender un poco de Elixir. No pretende ser la mejor solución para todos los casos.
+
+## Alternativas
+
+Antes de usar este proyecto, considera estas alternativas:
+
+- **Solo necesitas RUC:** [peru-consult-api](https://github.com/giansalex/peru-consult-api) hace scraping de la [página pública de SUNAT](https://e-consultaruc.sunat.gob.pe/cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp) y no requiere credenciales SOL. Retorna más información que esta API.
+
+- **Solo necesitas DNI:** Existen APIs con free tier o puedes hacer scraping de otros sitios públicos.
+
+- **Necesitas alta concurrencia:** Considera una API de terceros de pago que esté optimizada para ese caso de uso.
 
 ## Requisitos
 
