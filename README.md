@@ -262,6 +262,10 @@ Ver logs de Redis:
 docker compose -f docker-compose.dev.yml exec redis redis-cli monitor
 ```
 
+## Contribuir
+
+Ver [CONTRIBUTING.md](CONTRIBUTING.md) para detalles sobre cómo contribuir al proyecto.
+
 ## Licencia
 
 MIT
