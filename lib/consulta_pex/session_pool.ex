@@ -45,7 +45,7 @@ defmodule ConsultaPex.SessionPool do
       waiting: :queue.new()
     }
 
-    Logger.info("SessionPool iniciado con #{pool_size} sesiones")
+    Logger.info("SessionPool started with #{pool_size} sessions")
     {:ok, state}
   end
 
@@ -115,7 +115,7 @@ defmodule ConsultaPex.SessionPool do
     # El proceso que tenía una sesión murió
     case find_session_by_pid(state.in_use, pid) do
       {:ok, session_id} ->
-        Logger.warning("Proceso #{inspect(pid)} murió, liberando sesión #{session_id}")
+        Logger.warning("Process #{inspect(pid)} died, releasing session #{session_id}")
         new_state = do_checkin(session_id, state)
         {:noreply, new_state}
 

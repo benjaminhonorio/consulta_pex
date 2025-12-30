@@ -39,7 +39,7 @@ defmodule ConsultaPex.CookieRefresher do
   end
 
   defp refresh_all_sessions(state) do
-    Logger.info("Iniciando refresh de #{state.pool_size} sesiones...")
+    Logger.info("Starting refresh of #{state.pool_size} sessions...")
 
     results =
       Enum.map(1..state.pool_size, fn session_id ->
@@ -49,17 +49,17 @@ defmodule ConsultaPex.CookieRefresher do
     success_count = Enum.count(results, &match?(:ok, &1))
     error_count = Enum.count(results, &match?({:error, _}, &1))
 
-    Logger.info("Refresh completado: #{success_count} exitosas, #{error_count} fallidas")
+    Logger.info("Refresh completed: #{success_count} successful, #{error_count} failed")
   end
 
   defp refresh_session(session_id, state) do
     case should_refresh_session?(session_id, state.refresh_interval) do
       true ->
-        Logger.info("Sesión #{session_id}: refrescando...")
+        Logger.info("Session #{session_id}: refreshing...")
         do_refresh_session(session_id, state)
 
       false ->
-        Logger.debug("Sesión #{session_id}: cookies válidas")
+        Logger.debug("Session #{session_id}: cookies still valid")
         :ok
     end
   end
@@ -89,16 +89,16 @@ defmodule ConsultaPex.CookieRefresher do
       {:ok, cookies} ->
         case RedisStore.set_session_cookies(session_id, cookies) do
           {:ok, _} ->
-            Logger.info("Sesión #{session_id}: cookies actualizadas")
+            Logger.info("Session #{session_id}: cookies updated")
             :ok
 
           {:error, reason} ->
-            Logger.error("Sesión #{session_id}: error guardando en Redis: #{inspect(reason)}")
+            Logger.error("Session #{session_id}: error saving to Redis: #{inspect(reason)}")
             {:error, reason}
         end
 
       {:error, reason} ->
-        Logger.error("Sesión #{session_id}: error en login: #{inspect(reason)}")
+        Logger.error("Session #{session_id}: login error: #{inspect(reason)}")
         {:error, reason}
     end
   end

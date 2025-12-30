@@ -119,7 +119,7 @@ defmodule ConsultaPex.SunatApi do
         err
 
       other ->
-        Logger.warning("Respuesta inesperada de SUNAT: #{inspect(other)}")
+        Logger.warning("Unexpected SUNAT response: #{inspect(other)}")
         {:error, :unknown_response}
     end
   end

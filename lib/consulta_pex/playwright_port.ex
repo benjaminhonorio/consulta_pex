@@ -57,7 +57,7 @@ defmodule ConsultaPex.PlaywrightPort do
 
   @impl true
   def handle_info({port, {:exit_status, status}}, %{port: port} = state) do
-    Logger.error("Node.js exit con status #{status}")
+    Logger.error("Node.js exited with status #{status}")
     {:stop, :port_closed, state}
   end
 end
