@@ -146,6 +146,8 @@ Respuesta:
 }
 ```
 
+> **Nota:** Al usar esta api SUNAT no permite consultar datos del propio RUC con el que se autenticó la sesión. Esto es porque estamos usando las cookies de la emisión de boletas y el RUC del adquiriente no puede ser igual que RUC del emisor.
+
 #### Estado del Pool
 
 ```
@@ -200,7 +202,7 @@ flowchart TB
     end
 
     Redis[(Redis)]
-    SUNAT[SUNAT WEB]
+    SUNAT[SUNAT WEB/API]
 
     Router --> SunatApi
     SunatApi --> SessionPool
