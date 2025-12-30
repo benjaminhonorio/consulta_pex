@@ -250,7 +250,8 @@ consulta_pex/
 │   ├── cookie_refresher.ex # Refresco automático
 │   ├── playwright_port.ex  # Integración Node.js
 │   ├── redis_store.ex      # Storage Redis
-│   └── sunat_api.ex        # Cliente SUNAT
+│   ├── sunat_api.ex        # Cliente SUNAT
+│   └── sunat_endpoints.ex  # URLs centralizadas
 ├── priv/playwright/        # Script de login (Node.js)
 ├── config/
 │   └── runtime.exs         # Configuración runtime
