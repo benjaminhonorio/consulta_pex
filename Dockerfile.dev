@@ -1,0 +1,23 @@
+FROM elixir:1.18-otp-27
+
+RUN apt-get update && apt-get install -y \
+    nodejs \
+    npm \
+    inotify-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+RUN mix local.hex --force && mix local.rebar --force
+
+COPY priv/playwright/package*.json ./priv/playwright/
+RUN cd priv/playwright && npm ci && npx playwright install firefox --with-deps
+
+COPY mix.exs mix.lock ./
+RUN mix deps.get
+
+COPY . .
+
+RUN cd priv/playwright && npm run build
+
+CMD ["mix", "run", "--no-halt"]

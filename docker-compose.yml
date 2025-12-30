@@ -1,0 +1,33 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${PORT:-4000}:4000"
+    environment:
+      - RUC=${RUC}
+      - USUARIO_SOL=${USUARIO_SOL}
+      - CLAVE_SOL=${CLAVE_SOL}
+      - API_KEY=${API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - PORT=4000
+      - POOL_SIZE=${POOL_SIZE:-2}
+      - REFRESH_INTERVAL=${REFRESH_INTERVAL:-3600000}
+      - RETRY_INTERVAL=${RETRY_INTERVAL:-300000}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  redis_data:

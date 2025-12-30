@@ -24,3 +24,4 @@ consulta_pex-*.tar
 
 node_modules
 .envrc
+.env

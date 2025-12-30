@@ -1,0 +1,39 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "${PORT:-4000}:4000"
+    environment:
+      - RUC=${RUC}
+      - USUARIO_SOL=${USUARIO_SOL}
+      - CLAVE_SOL=${CLAVE_SOL}
+      - API_KEY=${API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - PORT=4000
+      - POOL_SIZE=${POOL_SIZE:-2}
+      - REFRESH_INTERVAL=${REFRESH_INTERVAL:-3600000}
+      - RETRY_INTERVAL=${RETRY_INTERVAL:-300000}
+      - MIX_ENV=dev
+    volumes:
+      - .:/app
+      - deps:/app/deps
+      - build:/app/_build
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  deps:
+  build:
