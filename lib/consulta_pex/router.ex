@@ -1,7 +1,9 @@
 defmodule ConsultaPex.Router do
   use Plug.Router
+  require Logger
   alias ConsultaPex.{RedisStore, SessionPool, SunatApi}
 
+  plug(Plug.Logger)
   plug(:match)
   plug(:dispatch)
 
@@ -40,6 +42,7 @@ defmodule ConsultaPex.Router do
         send_json(conn, 200, %{success: true, nombre: data.nombre})
 
       {:error, reason} ->
+        Logger.warning("GET /dni/#{numero} failed: #{format_error(reason)}")
         send_json(conn, 400, %{success: false, error: format_error(reason)})
     end
   end
@@ -54,6 +57,7 @@ defmodule ConsultaPex.Router do
         })
 
       {:error, reason} ->
+        Logger.warning("GET /ruc/#{numero} failed: #{format_error(reason)}")
         send_json(conn, 400, %{success: false, error: format_error(reason)})
     end
   end

@@ -1,4 +1,6 @@
 defmodule ConsultaPex.RedisStore do
+  require Logger
+
   @redix :redix
 
   # Funciones legacy (para compatibilidad con consultas DNI)
@@ -16,7 +18,19 @@ defmodule ConsultaPex.RedisStore do
 
   # Funciones para pool de sesiones
   def get_session_cookies(session_id) do
-    Redix.command(@redix, ["GET", session_key(session_id, :cookies)])
+    case Redix.command(@redix, ["GET", session_key(session_id, :cookies)]) do
+      {:ok, nil} = result ->
+        Logger.debug("Redis GET session #{session_id} cookies: nil")
+        result
+
+      {:ok, _} = result ->
+        Logger.debug("Redis GET session #{session_id} cookies: found")
+        result
+
+      {:error, reason} = error ->
+        Logger.error("Redis GET session #{session_id} cookies failed: #{inspect(reason)}")
+        error
+    end
   end
 
   def set_session_cookies(session_id, cookies) do
@@ -25,12 +39,24 @@ defmodule ConsultaPex.RedisStore do
     with {:ok, _} <- Redix.command(@redix, ["SET", session_key(session_id, :cookies), cookies]),
          {:ok, _} <-
            Redix.command(@redix, ["SET", session_key(session_id, :updated_at), timestamp]) do
+      Logger.debug("Redis SET session #{session_id} cookies: ok")
       {:ok, timestamp}
+    else
+      {:error, reason} = error ->
+        Logger.error("Redis SET session #{session_id} cookies failed: #{inspect(reason)}")
+        error
     end
   end
 
   def get_session_updated_at(session_id) do
-    Redix.command(@redix, ["GET", session_key(session_id, :updated_at)])
+    case Redix.command(@redix, ["GET", session_key(session_id, :updated_at)]) do
+      {:ok, _} = result ->
+        result
+
+      {:error, reason} = error ->
+        Logger.error("Redis GET session #{session_id} updated_at failed: #{inspect(reason)}")
+        error
+    end
   end
 
   defp session_key(session_id, :cookies), do: "sunat:session:#{session_id}:cookies"

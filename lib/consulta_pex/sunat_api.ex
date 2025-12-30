@@ -4,7 +4,7 @@ defmodule ConsultaPex.SunatApi do
   require Logger
   alias ConsultaPex.{RedisStore, SessionPool}
 
-  # DNI → retorna nombre (no usa pool, no mantiene estado)
+  # Para DNI → solo retorna nombre, desde sunat no hay de donde sacar los domicilios y para las boletas no es necesario
   def consultar_dni(dni) do
     with {:ok, cookies} <- get_cookies(),
          {:ok, nombre} <- validar_adquiriente(dni, 1, cookies) do
@@ -12,7 +12,7 @@ defmodule ConsultaPex.SunatApi do
     end
   end
 
-  # RUC → retorna razón social + domicilios (usa pool para evitar race conditions)
+  # Para RUC → retorna razón social + domicilios (usa pool para evitar race conditions porque sunat mantiene un estado de lado del servidor para una determinada sesion)
   def consultar_ruc(ruc) do
     SessionPool.with_session(fn session_id ->
       with {:ok, cookies} <- get_session_cookies(session_id),
@@ -25,49 +25,73 @@ defmodule ConsultaPex.SunatApi do
 
   defp get_cookies do
     case RedisStore.get_cookies() do
-      {:ok, nil} -> {:error, :no_cookies}
-      {:ok, cookies} -> {:ok, cookies}
-      error -> error
+      {:ok, nil} ->
+        Logger.warning("No cookies found in Redis")
+        {:error, :no_cookies}
+
+      {:ok, cookies} ->
+        {:ok, cookies}
+
+      error ->
+        Logger.error("Failed to get cookies from Redis: #{inspect(error)}")
+        error
     end
   end
 
   defp get_session_cookies(session_id) do
     case RedisStore.get_session_cookies(session_id) do
-      {:ok, nil} -> {:error, :no_cookies}
-      {:ok, cookies} -> {:ok, cookies}
-      error -> error
+      {:ok, nil} ->
+        Logger.warning("No cookies for session #{session_id}")
+        {:error, :no_cookies}
+
+      {:ok, cookies} ->
+        {:ok, cookies}
+
+      error ->
+        Logger.error("Failed to get cookies for session #{session_id}: #{inspect(error)}")
+        error
     end
   end
 
   defp validar_adquiriente(numero, tipo, cookies) do
     url = "#{@base_url}?action=validarAdquiriente&tipoDocumento=#{tipo}&numeroDocumento=#{numero}"
+    Logger.debug("SUNAT request: validarAdquiriente tipo=#{tipo} numero=#{numero}")
 
     case Req.get(url, headers: headers(cookies), decode_body: false) do
       {:ok, %{status: 200, body: body}} ->
+        Logger.debug("SUNAT response: 200 OK, size=#{human_size(byte_size(body))}")
         parse_response(body)
 
       {:ok, %{status: status}} ->
+        Logger.warning("SUNAT response: HTTP #{status}")
         {:error, "HTTP #{status}"}
 
       {:error, reason} ->
+        Logger.error("SUNAT request failed: #{inspect(reason)}")
         {:error, reason}
     end
   end
 
   defp get_domicilios(cookies) do
     url = "#{@base_url}?action=getDomiciliosCliente"
+    Logger.debug("SUNAT request: getDomiciliosCliente")
 
     case Req.get(url, headers: headers(cookies), decode_body: false) do
       {:ok, %{status: 200, body: body}} ->
+        Logger.debug("SUNAT response: 200 OK, size=#{human_size(byte_size(body))}")
+
         with {:ok, utf8} <- to_utf8(body),
              {:ok, %{"items" => items}} <- Jason.decode(utf8) do
+          Logger.debug("getDomicilios: found #{length(items)} items")
           {:ok, items}
         end
 
       {:ok, %{status: status}} ->
+        Logger.warning("SUNAT getDomicilios response: HTTP #{status}")
         {:error, "HTTP #{status}"}
 
       {:error, reason} ->
+        Logger.error("SUNAT getDomicilios failed: #{inspect(reason)}")
         {:error, reason}
     end
   end
@@ -107,4 +131,7 @@ defmodule ConsultaPex.SunatApi do
       {:incomplete, _, _} -> {:error, :encoding_incomplete}
     end
   end
+
+  defp human_size(bytes) when bytes < 1024, do: "#{bytes}B"
+  defp human_size(bytes), do: "#{Float.round(bytes / 1024, 1)}KB"
 end
